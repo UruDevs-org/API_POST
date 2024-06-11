@@ -8,6 +8,18 @@ use App\Models\Post;
 
 class PostController extends Controller
 {
+    function List(Request $request){
+        $page = $request->has("page") ? $request->get("page") : 1;
+        $limit = 20;
+        $posts = Post::skip(($page - 1) * 20)->take($limit)->get();
+        return response() -> json($posts);
+    }
+
+    function Show(Request $request, $id){
+        $post = Post::findOrFail($id);
+        return response() -> json($post);
+    }
+
     function Create(Request $request){
         $post = new Post();
         $post -> content = $request -> post("content");
@@ -15,6 +27,6 @@ class PostController extends Controller
         if($request -> post("attachments"))
             $post -> attachments = $request -> post("attachments");
         $post -> save();
-        return redirect("/") -> with("created", true);
+        return response() -> json(["msg" => "Post created"]);
     }
 }
