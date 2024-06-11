@@ -16,6 +16,8 @@ use App\Http\Controllers\PostController;
 
 Route::get('/', [PostController::class, "List"]);
 
+Route::get('/post/{d}', [PostController::class, "Show"]);
+
 Route::get('/csrf-token', function () {
     return response() -> json(["token" => csrf_token()]);
 });

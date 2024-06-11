@@ -13,6 +13,11 @@ class PostController extends Controller
         return response() -> json($posts);
     }
 
+    function Show(Request $request, $id){
+        $post = Post::findOrFail($id);
+        return response() -> json($post);
+    }
+
     function Create(Request $request){
         $post = new Post();
         $post -> content = $request -> post("content");
