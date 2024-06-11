@@ -14,9 +14,7 @@ use App\Http\Controllers\PostController;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [PostController::class, "List"]);
 
 Route::get('/csrf-token', function () {
     return response() -> json(["token" => csrf_token()]);

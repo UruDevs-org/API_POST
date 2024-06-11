@@ -8,6 +8,11 @@ use App\Models\Post;
 
 class PostController extends Controller
 {
+    function List(Request $request){
+        $posts = Post::all();
+        return response() -> json($posts);
+    }
+
     function Create(Request $request){
         $post = new Post();
         $post -> content = $request -> post("content");
@@ -15,6 +20,6 @@ class PostController extends Controller
         if($request -> post("attachments"))
             $post -> attachments = $request -> post("attachments");
         $post -> save();
-        return redirect("/") -> with("created", true);
+        return response() -> json(["msg" => "Post created"]);
     }
 }
