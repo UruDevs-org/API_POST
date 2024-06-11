@@ -18,7 +18,7 @@ Route::get('/', [PostController::class, "List"]);
 
 Route::get('/post/{d}', [PostController::class, "Show"]);
 
-Route::get('/csrf-token', function () {
+Route::get('/token', function () {
     return response() -> json(["token" => csrf_token()]);
 });
 
