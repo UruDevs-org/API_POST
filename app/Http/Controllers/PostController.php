@@ -9,7 +9,9 @@ use App\Models\Post;
 class PostController extends Controller
 {
     function List(Request $request){
-        $posts = Post::all();
+        $page = $request->has("page") ? $request->get("page") : 1;
+        $limit = 20;
+        $posts = Post::skip(($page - 1) * 20)->take($limit)->get();
         return response() -> json($posts);
     }
 
