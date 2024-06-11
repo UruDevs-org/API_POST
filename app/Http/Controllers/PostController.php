@@ -29,4 +29,10 @@ class PostController extends Controller
         $post -> save();
         return response() -> json(["msg" => "Post created"]);
     }
+
+    function Delete(Request $request, $id){
+        $post = Post::findOrFail($id);
+        $post -> delete();
+        return response() -> json(["msg" => "Post deleted"]);
+    }
 }
