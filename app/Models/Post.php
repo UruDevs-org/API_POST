@@ -13,19 +13,23 @@ class Post extends Model
     use HasFactory;
     use SoftDeletes;
     protected $table = "posts";
-    public function attachments(): HasMany
-    {
-        return $this -> hasMany(Attachment::class);
-    }
     public function author(): BelongsTo
     {
         return $this -> belongsTo(User::class);
+    }
+    public function attachments(): HasMany
+    {
+        return $this -> hasMany(Attachment::class);
     }
     public function comments(): HasMany
     {
         return $this -> hasMany(Comment::class);
     }
-    public function group(): BelongsTo
+    public function likes(): HasMany
+    {
+        return $this -> hasMany(Likes::class);
+    }
+    public function published_in_group(): BelongsTo
     {
         return $this -> belongsTo(Group::class);
     }
