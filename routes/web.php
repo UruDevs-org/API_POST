@@ -14,12 +14,16 @@ use App\Http\Controllers\PostController;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [PostController::class, "List"]);
 
-Route::get('/csrf-token', function () {
+Route::get('/post/{d}', [PostController::class, "Show"]);
+
+Route::get('/token', function () {
     return response() -> json(["token" => csrf_token()]);
 });
 
 Route::post('/create', [PostController::class, "Create"]);
+
+Route::get('/delete/{d}', [PostController::class, "Delete"]);
+
+Route::post('/update/{d}', [PostController::class, "Update"]);
