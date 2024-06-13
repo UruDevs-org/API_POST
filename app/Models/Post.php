@@ -27,7 +27,7 @@ class Post extends Model
     }
     public function likes(): HasMany
     {
-        return $this -> hasMany(Likes::class);
+        return $this -> hasMany(Like::class);
     }
     public function published_in_group(): BelongsTo
     {
