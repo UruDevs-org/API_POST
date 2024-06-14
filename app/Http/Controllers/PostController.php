@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Post;
+use App\Models\Comment;
 
 class PostController extends Controller
 {
@@ -26,6 +27,8 @@ class PostController extends Controller
         $post -> author = $request -> post("author");
         if($request -> has("attachments"))
             $post -> attachments = $request -> post("attachments");
+        if($request -> has("is_comment"))
+            $post -> is_comment = $request -> post("is_comment");
         $post -> save();
         return response() -> json(["msg" => "Post created"]);
     }
@@ -44,5 +47,15 @@ class PostController extends Controller
             $post -> attachments = $request -> post("attachments");
         $post -> save();
         return response() -> json(["msg" => "Post updated"]);
+    }
+
+    function Comment(Request $request, $id){
+        $post = Post::findOrFail($id);
+        if ($post) {
+            $comment = new Comment();
+            $comment -> Create($request);
+            $comment -> replies_to = $id;
+            return response() -> json(["msg" => "Post commented"]);
+        }
     }
 }
