@@ -16,12 +16,17 @@ class PostController extends Controller
         return response() -> json($posts);
     }
 
-    function Show(Request $request, $id){
+    function Show(Request $request, $id) {
         $post = Post::findOrFail($id);
         return response() -> json($post);
     }
 
-    function Create(Request $request){
+    function Create(Request $request) {
+        $this -> Insert($request);
+        return response() -> json(["msg" => "Post created"]);
+    }
+
+    function Insert($request) {
         $post = new Post();
         $post -> content = $request -> post("content");
         $post -> author = $request -> post("author");
@@ -30,16 +35,16 @@ class PostController extends Controller
         if($request -> has("is_comment"))
             $post -> is_comment = $request -> post("is_comment");
         $post -> save();
-        return response() -> json(["msg" => "Post created"]);
+        return $post -> id;
     }
 
-    function Delete(Request $request, $id){
+    function Delete(Request $request, $id) {
         $post = Post::findOrFail($id);
         $post -> delete();
         return response() -> json(["msg" => "Post deleted"]);
     }
 
-    function Update(Request $request, $id){
+    function Update(Request $request, $id) {
         $post = Post::findOrFail($id);
         if($request -> has("content"))
             $post -> content = $request -> post("content");
@@ -49,11 +54,11 @@ class PostController extends Controller
         return response() -> json(["msg" => "Post updated"]);
     }
 
-    function Comment(Request $request, $id){
+    function Comment(Request $request, $id) {
         $post = Post::findOrFail($id);
         if ($post) {
             $comment = new Comment();
-            $comment -> Create($request);
+            $comment -> $this -> Insert($request);
             $comment -> replies_to = $id;
             return response() -> json(["msg" => "Post commented"]);
         }
