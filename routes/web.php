@@ -18,6 +18,8 @@ Route::get('/', [PostController::class, "List"]);
 
 Route::get('/post/{d}', [PostController::class, "Show"]);
 
+Route::get('/post/{d}/comments', [PostController::class, "ListComments"]);
+
 Route::get('/token', function () {
     return response() -> json(["token" => csrf_token()]);
 });

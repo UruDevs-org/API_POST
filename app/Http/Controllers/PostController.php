@@ -9,10 +9,21 @@ use App\Models\Comment;
 
 class PostController extends Controller
 {
-    function List(Request $request){
+    function List(Request $request) {
         $page = $request -> has("page") ? $request -> get("page") : 1;
         $limit = 20;
-        $posts = Post::skip(($page - 1) * 20) -> take($limit) -> get();
+        $posts = Post::where("is_comment", false) -> skip(($page - 1) * 20) -> take($limit) -> get();
+        return response() -> json($posts);
+    }
+
+    function ListComments(Request $request, $id) {
+        $page = $request -> has("page") ? $request -> get("page") : 1;
+        $limit = 20;
+        $comments = Comment::where("post", $id) -> skip(($page -1) * 20) -> take($limit) -> get();
+        $posts = [];
+        foreach($comments as $comment) {
+            array_map($posts, Post::findOrFail($comment -> post));
+        }
         return response() -> json($posts);
     }
 
@@ -58,8 +69,16 @@ class PostController extends Controller
         $post = Post::findOrFail($id);
         if ($post) {
             $comment = new Comment();
-            $comment -> $this -> Insert($request);
+            $postId = $this -> Insert($request);
+            $comment -> post = $postId;
             $comment -> replies_to = $id;
+            $post -> comments
+                ? $comments = array_map("intval", explode(",", $post -> comments))
+                : $comments = [];
+            array_push($comments, $postId);
+            $post -> comments = $comments;
+            $comment -> save();
+            $post -> save();
             return response() -> json(["msg" => "Post commented"]);
         }
     }
