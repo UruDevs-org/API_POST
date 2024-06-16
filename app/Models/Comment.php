@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Comment extends Post
+class Comment extends Model
 {
     use HasFactory;
     use SoftDeletes;
@@ -15,10 +15,10 @@ class Comment extends Post
     public $timestamps = false;
 
     public function replies_to(): BelongsTo {
-        return $this -> belongsTo(Post::class);
+        return $this -> belongsTo(Post::class, "replies_to");
     }
 
     public function post(): BelongsTo {
-        return $this -> belongsTo(Post::class);
+        return $this -> belongsTo(Post::clsss, "post");
     }
 }

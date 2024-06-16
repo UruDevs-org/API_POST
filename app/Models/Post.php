@@ -15,39 +15,42 @@ class Post extends Model
     use SoftDeletes;
     protected $table = "posts";
 
+    protected $casts = [
+        "attachments" => "json",
+        "comments" => "json",
+        "likes" => "json",
+        "reports" => "json",
+    ];
+
     public function author(): BelongsTo {
-        return $this -> belongsTo(User::class);
+        return $this -> belongsTo(User::class, "author");
     }
 
     public function attachments(): HasMany {
-        return $this -> hasMany(Attachment::class);
+        return $this -> hasMany(Attachment::class, "attachments");
     }
 
     public function comments(): HasMany {
-        return $this -> hasMany(Comment::class);
+        return $this -> hasMany(Comment::class, "comments");
     }
 
     public function likes(): HasMany {
-        return $this -> hasMany(Like::class);
+        return $this -> hasMany(Like::class, "likes");
     }
 
     public function published_in_group(): BelongsTo {
-        return $this -> belongsTo(Group::class);
+        return $this -> belongsTo(Group::class, "group_id");
     }
 
     public function is_event(): HasOne {
-        return $this -> hasOne(Event::class);
+        return $this -> hasOne(Event::class, "event_id");
     }
 
     public function is_comment(): HasOne {
-        return $this -> hasOne(Comment::class);
+        return $this -> hasOne(Comment::class, "comment_id");
     }
 
     public function reports(): HasMany {
-        return $this -> hasMany(Report::class);
-    }
-
-    public function getId() {
-        return $this -> id;
+        return $this -> hasMany(Report::class, "reports");
     }
 }
