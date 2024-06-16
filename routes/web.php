@@ -26,6 +26,8 @@ Route::get('/token', function () {
 
 Route::post('/create', [PostController::class, "Create"]);
 
+Route::get('/delete/comment/{d}', [PostController::class, "DeleteComment"]);
+
 Route::get('/delete/{d}', [PostController::class, "Delete"]);
 
 Route::post('/update/{d}', [PostController::class, "Update"]);

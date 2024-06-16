@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Post;
 use App\Models\Comment;
+use PhpParser\Node\Stmt\TryCatch;
 
 class PostController extends Controller
 {
@@ -47,9 +48,19 @@ class PostController extends Controller
     }
 
     function Delete(Request $request, $id) {
-        $post = Post::findOrFail($id);
-        $post -> delete();
-        return response() -> json(["msg" => "Post deleted"]);
+        try {
+            $post = Post::findOrFail($id);
+            if($post -> comments) {
+                $comments = $post::pluck("comments") -> toArray();
+                foreach ($comments as $comment) {
+                    $this -> DeleteComment($request, $comment);
+                }
+            }
+            $post -> delete();
+            return response() -> json(["msg" => "Post deleted"]);
+        } catch (\Throwable $th) {
+            return response() -> json(["msg" => $th]);
+        }
     }
 
     function Update(Request $request, $id) {
@@ -69,14 +80,22 @@ class PostController extends Controller
             $postId = $this -> Insert($request);
             $comment -> post = $postId;
             $comment -> replies_to = $id;
+            $comment -> save();
             $post -> comments
                 ? $comments = array_map("intval", explode(",", $post -> comments))
                 : $comments = [];
-            array_push($comments, $postId);
+            array_push($comments, $comment -> id);
             $post -> comments = $comments;
-            $comment -> save();
             $post -> save();
+            dump($post -> comments);
             return response() -> json(["msg" => "Post commented"]);
         }
+    }
+
+    function DeleteComment(Request $request, $id) {
+        $comment = Comment::findOrFail($id);
+        $this -> Delete($request, $comment -> post);
+        $comment -> delete();
+        return response() -> json(["msg" => "Comment deleted"]);
     }
 }
