@@ -18,12 +18,18 @@ Route::get('/', [PostController::class, "List"]);
 
 Route::get('/post/{d}', [PostController::class, "Show"]);
 
+Route::get('/post/{d}/comments', [PostController::class, "ListComments"]);
+
 Route::get('/token', function () {
     return response() -> json(["token" => csrf_token()]);
 });
 
 Route::post('/create', [PostController::class, "Create"]);
 
+Route::get('/delete/comment/{d}', [PostController::class, "DeleteComment"]);
+
 Route::get('/delete/{d}', [PostController::class, "Delete"]);
 
 Route::post('/update/{d}', [PostController::class, "Update"]);
+
+Route::post('/comment/{d}', [PostController::class, "Comment"]);
