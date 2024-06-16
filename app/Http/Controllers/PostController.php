@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Post;
 use App\Models\Comment;
-use PhpParser\Node\Stmt\TryCatch;
 
 class PostController extends Controller
 {
@@ -82,12 +81,11 @@ class PostController extends Controller
             $comment -> replies_to = $id;
             $comment -> save();
             $post -> comments
-                ? $comments = array_map("intval", explode(",", $post -> comments))
+                ? $comments = $post -> comments
                 : $comments = [];
             array_push($comments, $comment -> id);
             $post -> comments = $comments;
             $post -> save();
-            dump($post -> comments);
             return response() -> json(["msg" => "Post commented"]);
         }
     }
