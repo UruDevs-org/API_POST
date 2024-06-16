@@ -92,6 +92,14 @@ class PostController extends Controller
 
     function DeleteComment(Request $request, $id) {
         $comment = Comment::findOrFail($id);
+        $repliesTo = $comment -> replies_to;
+        $post = Post::findOrFail($repliesTo);
+        $comments = $post -> comments;
+        $comments = array_values(array_filter($comments, function($var) use ($comment) {
+            if ($var !== $comment -> id) return $var;
+        }));
+        $post -> comments = $comments;
+        $post -> save();
         $this -> Delete($request, $comment -> post);
         $comment -> delete();
         return response() -> json(["msg" => "Comment deleted"]);
