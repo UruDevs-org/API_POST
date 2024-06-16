@@ -19,11 +19,8 @@ class PostController extends Controller
     function ListComments(Request $request, $id) {
         $page = $request -> has("page") ? $request -> get("page") : 1;
         $limit = 20;
-        $comments = Comment::where("replies_to", $id) -> skip(($page -1) * 20) -> take($limit) -> get();
-        $posts = [];
-        foreach($comments as &$comment) {
-            array_push($posts, Post::findOrFail($comment -> post));
-        }
+        $comments = Comment::where("replies_to", $id) -> skip(($page -1) * 20) -> take($limit) -> pluck("post") -> toArray();
+        $posts = Post::whereIn("id", $comments) -> get();
         return response() -> json($posts);
     }
 
