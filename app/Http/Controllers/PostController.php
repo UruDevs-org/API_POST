@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use App\Models\Post;
 use App\Models\Comment;
 
@@ -33,16 +34,24 @@ class PostController extends Controller
     }
 
     function Show(Request $request, $id) {
+        try{
         $post = Post::findOrFail($id);
         return response() -> json($post);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
+            return response() -> json(["msg" => "El post que intenta encontrar no existe"]);
+        }
     }
 
     function Create(Request $request) {
-        $this -> Insert($request);
-        return response() -> json(["msg" => "Post created"]);
+        if($request -> has("content") && $request -> has("author")){
+            $this -> InsertPost($request);
+            return response() -> json(["msg" => "Post created"]);
+        }
+        return response() -> json(["msg" => "Los campos requeridos se encuentran vacíos"]);
     }
 
-    function Insert($request) {
+    function InsertPost($request) {
         $post = new Post();
         $post -> content = $request -> post("content");
         $post -> author = $request -> post("author");
@@ -50,6 +59,10 @@ class PostController extends Controller
             $post -> attachments = $request -> post("attachments");
         if($request -> has("is_comment"))
             $post -> is_comment = $request -> post("is_comment");
+        if($request -> has("is_event"))
+            $post -> is_event = $request -> post("is_event");
+        if($request -> has("published_in_group"))
+            $post -> published_in_group = $request -> post("published_in_group");
         $post -> save();
         return $post -> id;
     }
@@ -65,43 +78,77 @@ class PostController extends Controller
             }
             $post -> delete();
             return response() -> json(["msg" => "Post deleted"]);
-        } catch (\Throwable $th) {
-            return response() -> json(["msg" => $th]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
+            return response() -> json(["msg" => "El post que intenta eliminar no existe"]);
         }
     }
 
     function Update(Request $request, $id) {
-        $post = Post::findOrFail($id);
-        if($request -> has("content"))
-            $post -> content = $request -> post("content");
-        if($request -> has("attachments"))
-            $post -> attachments = $request -> post("attachments");
-        $post -> save();
-        return response() -> json(["msg" => "Post updated"]);
-    }
-
-    function Comment(Request $request, $id) {
-        $post = Post::findOrFail($id);
-        if ($post) {
-            $comment = new Comment();
-            $postId = $this -> Insert($request);
-            $comment -> post = $postId;
-            $comment -> replies_to = $id;
-            $comment -> save();
-            $post -> comments
-                ? $comments = $post -> comments
-                : $comments = [];
-            array_push($comments, $comment -> id);
-            $post -> comments = $comments;
-            $post -> save();
-            return response() -> json(["msg" => "Post commented"]);
+        try {
+            $post = Post::findOrFail($id);
+            if($request -> has("content")) {
+                $post -> content = $request -> post("content");
+                if($request -> has("attachments"))
+                    $post -> attachments = $request -> post("attachments");
+                $post -> save();
+                return response() -> json(["msg" => "Post updated"]);
+            }
+            return response() -> json(["msg" => "La request se encuentra incompleta"]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
+            return response() -> json(["msg" => "El post que intenta modificar no existe"]);
         }
     }
 
+    function Comment(Request $request, $id) {
+        try {
+            $post = Post::findOrFail($id);
+            if ($request -> has("content") && $request -> has("author") && $request -> has("is_comment")) {
+                $postId = $this -> InsertPost($request);
+                $commentId = $this -> InsertComment($postId, $id);
+                $this -> AddCommentToThePostArray($post, $commentId);
+                return response() -> json(["msg" => "Post commented"]);
+            }
+            return response() -> json(["msg" => "Hay datos vacíos en la request"]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
+            return response() -> json(["msg" => "El post que intenta comentar no existe"]);
+        }
+    }
+
+    function InsertComment($post, $repliesTo) {
+        $comment = new Comment();
+        $comment -> post = $post;
+        $comment -> replies_to = $repliesTo;
+        $comment -> save();
+        return $comment -> id;
+    }
+
+    function AddCommentToThePostArray($post, $commentId) {
+        $post -> comments
+                ? $comments = $post -> comments
+                : $comments = [];
+        array_push($comments, $commentId);
+        $post -> comments = $comments;
+        $post -> save();
+    }
+
     function DeleteComment(Request $request, $id) {
-        $comment = Comment::findOrFail($id);
-        $repliesTo = $comment -> replies_to;
-        $post = Post::findOrFail($repliesTo);
+        try{
+            $comment = Comment::findOrFail($id);
+            $this -> RemoveCommentFromThePostArray($comment);
+            $this -> Delete($request, $comment -> post);
+            $comment -> delete();
+            return response() -> json(["msg" => "Comment deleted"]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
+            return response() -> json(["msg" => "El comentario que intenta eliminar no existe"]);
+        }
+    }
+
+    function RemoveCommentFromThePostArray($comment) {
+        $post = Post::findOrFail($comment -> replies_to);
         $comments = $post -> comments;
         $comments = array_values(
             array_filter($comments, function($var) use ($comment) {
@@ -109,8 +156,5 @@ class PostController extends Controller
         }));
         $post -> comments = $comments;
         $post -> save();
-        $this -> Delete($request, $comment -> post);
-        $comment -> delete();
-        return response() -> json(["msg" => "Comment deleted"]);
     }
 }
