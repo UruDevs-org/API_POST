@@ -12,14 +12,22 @@ class PostController extends Controller
     function List(Request $request) {
         $page = $request -> has("page") ? $request -> get("page") : 1;
         $limit = 20;
-        $posts = Post::where("is_comment", false) -> skip(($page - 1) * 20) -> take($limit) -> get();
+        $posts = Post::where("is_comment", false)
+            -> where("is_event", false)
+            -> skip(($page - 1) * 20)
+            -> take($limit)
+            -> get();
         return response() -> json($posts);
     }
 
     function ListComments(Request $request, $id) {
         $page = $request -> has("page") ? $request -> get("page") : 1;
         $limit = 20;
-        $comments = Comment::where("replies_to", $id) -> skip(($page -1) * 20) -> take($limit) -> pluck("post") -> toArray();
+        $comments = Comment::where("replies_to", $id)
+            -> skip(($page -1) * 20)
+            -> take($limit)
+            -> pluck("post")
+            -> toArray();
         $posts = Post::whereIn("id", $comments) -> get();
         return response() -> json($posts);
     }
@@ -95,8 +103,9 @@ class PostController extends Controller
         $repliesTo = $comment -> replies_to;
         $post = Post::findOrFail($repliesTo);
         $comments = $post -> comments;
-        $comments = array_values(array_filter($comments, function($var) use ($comment) {
-            if ($var !== $comment -> id) return $var;
+        $comments = array_values(
+            array_filter($comments, function($var) use ($comment) {
+                if ($var !== $comment -> id) return $var;
         }));
         $post -> comments = $comments;
         $post -> save();
