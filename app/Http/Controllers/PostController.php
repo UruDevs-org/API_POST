@@ -157,4 +157,26 @@ class PostController extends Controller
         $post -> comments = $comments;
         $post -> save();
     }
+
+    function Like(Request $request, $id) {
+        try {
+            $userId = $request -> post("userId");
+            $post = Post::findOrFail($id);
+            $post -> likes
+                ? $likes = $post -> likes
+                : $likes = [];
+            in_array($userId, $likes)
+                ? $likes = array_values(
+                    array_filter($likes, function($var) use ($userId) {
+                        if ($var !== $userId) return $var;
+                    })
+                )
+                : array_push($likes, $userId);
+            $post -> likes = $likes;
+            $post -> save();
+        } catch (ModelNotFoundException $e) {
+            throw $e;
+            return response() -> json(["msg" => "El post que intenta likear no existe"]);
+        }
+    }
 }
