@@ -10,173 +10,205 @@ use App\Models\Comment;
 
 class PostController extends Controller
 {
-    function List(Request $request) {
-        $page = $request -> has("page") ? $request -> get("page") : 1;
+    function List(Request $request)
+    {
+        $page = $request->has("page") ? $request->get("page") : 1;
         $limit = 20;
         $posts = Post::where("is_comment", false)
-            -> where("is_event", false)
-            -> skip(($page - 1) * 20)
-            -> take($limit)
-            -> get();
-        return response() -> json($posts);
+            ->where("is_event", false)
+            ->skip(($page - 1) * 20)
+            ->take($limit)
+            ->get();
+        return response()->json($posts);
     }
 
-    function ListComments(Request $request, $id) {
-        $page = $request -> has("page") ? $request -> get("page") : 1;
-        $limit = 20;
-        $comments = Comment::where("replies_to", $id)
-            -> skip(($page -1) * 20)
-            -> take($limit)
-            -> pluck("post")
-            -> toArray();
-        $posts = Post::whereIn("id", $comments) -> get();
-        return response() -> json($posts);
-    }
-
-    function Show(Request $request, $id) {
-        try{
-        $post = Post::findOrFail($id);
-        return response() -> json($post);
-        } catch (ModelNotFoundException $e) {
-            throw $e;
-            return response() -> json(["msg" => "El post que intenta encontrar no existe"]);
-        }
-    }
-
-    function Create(Request $request) {
-        if($request -> has("content") && $request -> has("author")){
-            $this -> InsertPost($request);
-            return response() -> json(["msg" => "Post created"]);
-        }
-        return response() -> json(["msg" => "Los campos requeridos se encuentran vacíos"]);
-    }
-
-    function InsertPost($request) {
-        $post = new Post();
-        $post -> content = $request -> post("content");
-        $post -> author = $request -> post("author");
-        if($request -> has("attachments"))
-            $post -> attachments = $request -> post("attachments");
-        if($request -> has("is_comment"))
-            $post -> is_comment = $request -> post("is_comment");
-        if($request -> has("is_event"))
-            $post -> is_event = $request -> post("is_event");
-        if($request -> has("published_in_group"))
-            $post -> published_in_group = $request -> post("published_in_group");
-        $post -> save();
-        return $post -> id;
-    }
-
-    function Delete(Request $request, $id) {
+    function Show(Request $request, $id)
+    {
         try {
             $post = Post::findOrFail($id);
-            if($post -> comments) {
-                $comments = $post::pluck("comments") -> toArray();
+            return response()->json($post);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(["error" => "Culdn't find the post"], 404);
+        }
+    }
+
+    function Create(Request $request)
+    {
+        if ($request->has("content") && $request->has("author")) {
+            $this->InsertPost($request);
+            return response()->json(["msg" => "Post created"], 201);
+        }
+        return response()->json([
+            "error" => "There are required params incomplete on the request"
+        ], 400);
+    }
+
+    function InsertPost($request)
+    {
+        $post = new Post();
+        $post->content = $request->post("content");
+        $post->author = $request->post("author");
+        if ($request->has("attachments"))
+            $post->attachments = $request->post("attachments");
+        if ($request->has("is_comment"))
+            $post->is_comment = $request->post("is_comment");
+        if ($request->has("is_event"))
+            $post->is_event = $request->post("is_event");
+        if ($request->has("published_in_group"))
+            $post->published_in_group = $request->post("published_in_group");
+        $post->save();
+        return $post->id;
+    }
+
+    function Delete(Request $request, $id)
+    {
+        try {
+            $post = Post::findOrFail($id);
+            if ($post->comments) {
+                $comments = $post::pluck("comments")->toArray();
                 foreach ($comments as $comment) {
-                    $this -> DeleteComment($request, $comment);
+                    $this->DeleteComment($request, $comment);
                 }
             }
-            $post -> delete();
-            return response() -> json(["msg" => "Post deleted"]);
+            $post->delete();
+            return response()->json(["msg" => "Post deleted"]);
         } catch (ModelNotFoundException $e) {
-            throw $e;
-            return response() -> json(["msg" => "El post que intenta eliminar no existe"]);
+            return response()->json([
+                "error" => "Culdn't find the post you're trying to delete"
+            ], 404);
         }
     }
 
-    function Update(Request $request, $id) {
+    function Update(Request $request, $id)
+    {
         try {
             $post = Post::findOrFail($id);
-            if($request -> has("content")) {
-                $post -> content = $request -> post("content");
-                if($request -> has("attachments"))
-                    $post -> attachments = $request -> post("attachments");
-                $post -> save();
-                return response() -> json(["msg" => "Post updated"]);
+            if ($request->has("content")) {
+                $post->content = $request->post("content");
+                if ($request->has("attachments"))
+                    $post->attachments = $request->post("attachments");
+                $post->save();
+                return response()->json(["msg" => "Post updated"]);
             }
-            return response() -> json(["msg" => "La request se encuentra incompleta"]);
+            return response()->json([
+                "error" => "There are required params incomplete on the request"
+            ], 400);
         } catch (ModelNotFoundException $e) {
-            throw $e;
-            return response() -> json(["msg" => "El post que intenta modificar no existe"]);
+            return response()->json([
+                "error" => "Culdn't find the post you're trying to update"
+            ], 404);
         }
     }
 
-    function Comment(Request $request, $id) {
+    function ListComments(Request $request, $id)
+    {
+        try {
+            $page = $request->has("page") ? $request->get("page") : 1;
+            $limit = 20;
+            $comments = Comment::where("replies_to", $id)
+                ->skip(($page - 1) * 20)
+                ->take($limit)
+                ->pluck("post")
+                ->toArray();
+            $posts = Post::whereIn("id", $comments)->get();
+            return response()->json($posts);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(["error" => "Culdn't find the post"], 404);
+        }
+    }
+
+    function Comment(Request $request, $id)
+    {
         try {
             $post = Post::findOrFail($id);
-            if ($request -> has("content") && $request -> has("author") && $request -> has("is_comment")) {
-                $postId = $this -> InsertPost($request);
-                $commentId = $this -> InsertComment($postId, $id);
-                $this -> AddCommentToThePostArray($post, $commentId);
-                return response() -> json(["msg" => "Post commented"]);
+            if (
+                $request->has("content") &&
+                $request->has("author") &&
+                $request->has("is_comment")
+            ) {
+                $postId = $this->InsertPost($request);
+                $commentId = $this->InsertComment($postId, $id);
+                $this->AddCommentToThePostArray($post, $commentId);
+                return response()->json(["msg" => "Post commented"], 201);
             }
-            return response() -> json(["msg" => "Hay datos vacíos en la request"]);
+            return response()->json([
+                "error" => "There are required params incomplete on the request"
+            ], 400);
         } catch (ModelNotFoundException $e) {
-            throw $e;
-            return response() -> json(["msg" => "El post que intenta comentar no existe"]);
+            return response()->json([
+                "error" => "Culdn't find the post you're trying to comment"
+            ], 404);
         }
     }
 
-    function InsertComment($post, $repliesTo) {
+    function InsertComment($post, $repliesTo)
+    {
         $comment = new Comment();
-        $comment -> post = $post;
-        $comment -> replies_to = $repliesTo;
-        $comment -> save();
-        return $comment -> id;
+        $comment->post = $post;
+        $comment->replies_to = $repliesTo;
+        $comment->save();
+        return $comment->id;
     }
 
-    function AddCommentToThePostArray($post, $commentId) {
-        $post -> comments
-                ? $comments = $post -> comments
-                : $comments = [];
+    function AddCommentToThePostArray($post, $commentId)
+    {
+        $post->comments
+            ? $comments = $post->comments
+            : $comments = [];
         array_push($comments, $commentId);
-        $post -> comments = $comments;
-        $post -> save();
+        $post->comments = $comments;
+        $post->save();
     }
 
-    function DeleteComment(Request $request, $id) {
-        try{
+    function DeleteComment(Request $request, $id)
+    {
+        try {
             $comment = Comment::findOrFail($id);
-            $this -> RemoveCommentFromThePostArray($comment);
-            $this -> Delete($request, $comment -> post);
-            $comment -> delete();
-            return response() -> json(["msg" => "Comment deleted"]);
+            $this->RemoveCommentFromThePostArray($comment);
+            $this->Delete($request, $comment->post);
+            $comment->delete();
+            return response()->json(["msg" => "Comment deleted"]);
         } catch (ModelNotFoundException $e) {
-            throw $e;
-            return response() -> json(["msg" => "El comentario que intenta eliminar no existe"]);
+            return response()->json([
+                "error" => "Culdn't find the comment you're trying to delete"
+            ], 404);
         }
     }
 
-    function RemoveCommentFromThePostArray($comment) {
-        $post = Post::findOrFail($comment -> replies_to);
-        $comments = $post -> comments;
+    function RemoveCommentFromThePostArray($comment)
+    {
+        $post = Post::findOrFail($comment->replies_to);
+        $comments = $post->comments;
         $comments = array_values(
-            array_filter($comments, function($var) use ($comment) {
-                if ($var !== $comment -> id) return $var;
-        }));
-        $post -> comments = $comments;
-        $post -> save();
+            array_filter($comments, function ($var) use ($comment) {
+                if ($var !== $comment->id) return $var;
+            })
+        );
+        $post->comments = $comments;
+        $post->save();
     }
 
-    function Like(Request $request, $id) {
+    function Like(Request $request, $id)
+    {
         try {
-            $userId = $request -> post("userId");
+            $userId = $request->post("userId");
             $post = Post::findOrFail($id);
-            $post -> likes
-                ? $likes = $post -> likes
+            $post->likes
+                ? $likes = $post->likes
                 : $likes = [];
             in_array($userId, $likes)
                 ? $likes = array_values(
-                    array_filter($likes, function($var) use ($userId) {
+                    array_filter($likes, function ($var) use ($userId) {
                         if ($var !== $userId) return $var;
                     })
                 )
                 : array_push($likes, $userId);
-            $post -> likes = $likes;
-            $post -> save();
+            $post->likes = $likes;
+            $post->save();
         } catch (ModelNotFoundException $e) {
-            throw $e;
-            return response() -> json(["msg" => "El post que intenta likear no existe"]);
+            return response()->json([
+                "error" => "Culdn't find the post you're trying to like"
+            ], 404);
         }
     }
 }

@@ -15,4 +15,6 @@ use App\Http\Controllers\CommentController;
 |
 */
 
-Route::get('/', );
+Route::get('/', function () {
+    return view('welcome');
+});
