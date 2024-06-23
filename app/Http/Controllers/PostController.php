@@ -60,6 +60,27 @@ class PostController extends Controller
         return $post->id;
     }
 
+    function Update(Request $request, $id)
+    {
+        try {
+            $post = Post::findOrFail($id);
+            if ($request->has("content") && $request->post("content")) {
+                $post->content = $request->post("content");
+                if ($request->has("attachments") && $request->post("attachments"))
+                    $post->attachments = $request->post("attachments");
+                $post->save();
+                return response()->json(["msg" => "Post updated"]);
+            }
+            return response()->json([
+                "error" => "There are required params incomplete on the request"
+            ], 400);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                "error" => "Culdn't find the post you're trying to update"
+            ], 404);
+        }
+    }
+
     function Delete(Request $request, $id)
     {
         try {
@@ -79,23 +100,26 @@ class PostController extends Controller
         }
     }
 
-    function Update(Request $request, $id)
+    function Like(Request $request, $id)
     {
         try {
+            $userId = $request->post("userId");
             $post = Post::findOrFail($id);
-            if ($request->has("content")) {
-                $post->content = $request->post("content");
-                if ($request->has("attachments"))
-                    $post->attachments = $request->post("attachments");
-                $post->save();
-                return response()->json(["msg" => "Post updated"]);
-            }
-            return response()->json([
-                "error" => "There are required params incomplete on the request"
-            ], 400);
+            $post->likes
+                ? $likes = $post->likes
+                : $likes = [];
+            in_array($userId, $likes)
+                ? $likes = array_values(
+                    array_filter($likes, function ($var) use ($userId) {
+                        if ($var !== $userId) return $var;
+                    })
+                )
+                : array_push($likes, $userId);
+            $post->likes = $likes;
+            $post->save();
         } catch (ModelNotFoundException $e) {
             return response()->json([
-                "error" => "Culdn't find the post you're trying to update"
+                "error" => "Culdn't find the post you're trying to like"
             ], 404);
         }
     }
@@ -103,7 +127,7 @@ class PostController extends Controller
     function ListComments(Request $request, $id)
     {
         try {
-            $page = $request->has("page") ? $request->get("page") : 1;
+            $page = $request->has("page") && $request->post("page") ? $request->get("page") : 1;
             $limit = 20;
             $comments = Comment::where("replies_to", $id)
                 ->skip(($page - 1) * 20)
@@ -122,10 +146,10 @@ class PostController extends Controller
         try {
             $post = Post::findOrFail($id);
             if (
-                $request->has("content") &&
-                $request->has("author") &&
-                $request->has("is_comment")
+                $request->has("content") && $request->post("content") &&
+                $request->has("author") && $request->post("author")
             ) {
+                $request->request->add(['is_comment' => true]);
                 $postId = $this->InsertPost($request);
                 $commentId = $this->InsertComment($postId, $id);
                 $this->AddCommentToThePostArray($post, $commentId);
@@ -186,29 +210,5 @@ class PostController extends Controller
         );
         $post->comments = $comments;
         $post->save();
-    }
-
-    function Like(Request $request, $id)
-    {
-        try {
-            $userId = $request->post("userId");
-            $post = Post::findOrFail($id);
-            $post->likes
-                ? $likes = $post->likes
-                : $likes = [];
-            in_array($userId, $likes)
-                ? $likes = array_values(
-                    array_filter($likes, function ($var) use ($userId) {
-                        if ($var !== $userId) return $var;
-                    })
-                )
-                : array_push($likes, $userId);
-            $post->likes = $likes;
-            $post->save();
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                "error" => "Culdn't find the post you're trying to like"
-            ], 404);
-        }
     }
 }

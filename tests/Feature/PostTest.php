@@ -84,11 +84,14 @@ class PostTest extends TestCase
         $this->assertDatabaseHas('posts', $postData);
     }
 
-    public function test_CreatePostFailResponse()
+    public function test_CreatePostBadRequest()
     {
         $responseStructure = ['error'];
         $responseData = ['error' => 'There are required params incomplete on the request'];
-        $postData = ['content' => 'Contrent of the Post Without an Author'];
+        $postData = [
+            'content' => 'Content of the Post Without an Author',
+            'author' => '',
+        ];
 
         $response = $this->post('/api/post', $postData);
         $response->assertStatus(400);
@@ -97,7 +100,51 @@ class PostTest extends TestCase
         $this->assertDatabaseMissing('posts', $postData);
     }
 
-    public function test_() {
+    public function test_UpdatePost()
+    {
+        $responseStructure = ['msg'];
+        $responseData = ['msg' => 'Post updated'];
+        $postData = [
+            'id' => '1',
+            'content' => 'Updated Content of the Post'
+        ];
 
+        $response = $this->post('/api/post/update/1', $postData);
+        $response->assertStatus(200);
+        $response->assertJsonStructure($responseStructure);
+        $response->assertJsonFragment($responseData);
+        $this->assertDatabaseHas('posts', $postData);
+    }
+
+    public function test_UpdateNonExistantPost()
+    {
+        $responseStructure = ['error'];
+        $responseData = ['error' => "Culdn't find the post you're trying to update"];
+        $postData = [
+            'id' => '999999999',
+            'content' => 'Updated Content of the Post'
+        ];
+
+        $response = $this->post('/api/post/update/999999999', $postData);
+        $response->assertStatus(404);
+        $response->assertJsonStructure($responseStructure);
+        $response->assertJsonFragment($responseData);
+        $this->assertDatabaseMissing('posts', $postData);
+    }
+
+    public function test_UpdatePostBadRequest()
+    {
+        $responseStructure = ['error'];
+        $responseData = ['error' => "There are required params incomplete on the request"];
+        $postData = [
+            'id' => '1',
+            'content' => ''
+        ];
+
+        $response = $this->post('/api/post/update/1', $postData);
+        $response->assertStatus(400);
+        $response->assertJsonStructure($responseStructure);
+        $response->assertJsonFragment($responseData);
+        $this->assertDatabaseMissing('posts', $postData);
     }
 }
