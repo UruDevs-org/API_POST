@@ -185,14 +185,14 @@ class PostTest extends TestCase
         $responseStructure = ['msg'];
         $responseData = ['msg' => 'Post Liked'];
         $requestData = [
-            'userId' => '1',
+            'userId' => 1,
         ];
         $postData = [
-            'id' => '1',
-            'likes' => [1]
+            'id' => 1,
+            'likes' => json_encode([1]),
         ];
 
-        $response = $this->post('/api/post/update/1', $requestData);
+        $response = $this->post('/api/post/like/1', $requestData);
         $response->assertStatus(200);
         $response->assertJsonStructure($responseStructure);
         $response->assertJsonFragment($responseData);
@@ -203,13 +203,13 @@ class PostTest extends TestCase
     {
         $responseStructure = ['error'];
         $responseData = [
-            'error' => "Culdn't find the post you're trying to update"
+            'error' => "Culdn't find the post you're trying to like"
         ];
         $requestData = [
-            'userId' => '1'
+            'userId' => 1
         ];
 
-        $response = $this->post('/api/post/update/999999999', $requestData);
+        $response = $this->post('/api/post/like/999999999', $requestData);
         $response->assertStatus(404);
         $response->assertJsonStructure($responseStructure);
         $response->assertJsonFragment($responseData);
@@ -226,7 +226,7 @@ class PostTest extends TestCase
             'userId' => '',
         ];
 
-        $response = $this->post('/api/post/update/1', $requestData);
+        $response = $this->post('/api/post/like/1', $requestData);
         $response->assertStatus(400);
         $response->assertJsonStructure($responseStructure);
         $response->assertJsonFragment($responseData);
