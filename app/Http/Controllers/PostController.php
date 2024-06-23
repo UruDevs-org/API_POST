@@ -12,7 +12,9 @@ class PostController extends Controller
 {
     function List(Request $request)
     {
-        $page = $request->has("page") ? $request->get("page") : 1;
+        $page = $request->has("page") && $request->post("page")
+            ? $request->get("page")
+            : 1;
         $limit = 20;
         $posts = Post::where("is_comment", false)
             ->where("is_event", false)
@@ -34,7 +36,10 @@ class PostController extends Controller
 
     function Create(Request $request)
     {
-        if ($request->has("content") && $request->has("author")) {
+        if (
+            $request->has("content") && $request->post("content") &&
+            $request->has("author") && $request->post("author")
+        ) {
             $this->InsertPost($request);
             return response()->json(["msg" => "Post created"], 201);
         }
@@ -48,13 +53,16 @@ class PostController extends Controller
         $post = new Post();
         $post->content = $request->post("content");
         $post->author = $request->post("author");
-        if ($request->has("attachments"))
+        if ($request->has("attachments") && $request->post("attachments"))
             $post->attachments = $request->post("attachments");
         if ($request->has("is_comment"))
             $post->is_comment = $request->post("is_comment");
         if ($request->has("is_event"))
             $post->is_event = $request->post("is_event");
-        if ($request->has("published_in_group"))
+        if (
+            $request->has("published_in_group") &&
+            $request->post("published_in_group")
+        )
             $post->published_in_group = $request->post("published_in_group");
         $post->save();
         return $post->id;
@@ -103,20 +111,21 @@ class PostController extends Controller
     function Like(Request $request, $id)
     {
         try {
-            $userId = $request->post("userId");
-            $post = Post::findOrFail($id);
-            $post->likes
-                ? $likes = $post->likes
-                : $likes = [];
-            in_array($userId, $likes)
-                ? $likes = array_values(
-                    array_filter($likes, function ($var) use ($userId) {
-                        if ($var !== $userId) return $var;
-                    })
-                )
-                : array_push($likes, $userId);
-            $post->likes = $likes;
-            $post->save();
+            if ($request->has("userId") && $request->post("userId")) {
+                $userId = $request->post("userId");
+                $post = Post::findOrFail($id);
+                $post->likes
+                    ? $likes = $post->likes
+                    : $likes = [];
+                $likes = $this->ToggleLike($userId, $likes);
+                $response = $this->LikeState($userId, $likes);
+                $post->likes = $likes;
+                $post->save();
+                return response()->json(["msg" => $response]);
+            }
+            return response()->json([
+                "error" => "There are required params incomplete on the request"
+            ], 400);
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 "error" => "Culdn't find the post you're trying to like"
@@ -124,10 +133,32 @@ class PostController extends Controller
         }
     }
 
+    function ToggleLike($userId, $likes)
+    {
+        in_array($userId, $likes)
+            ? $likes = array_values(
+                array_filter($likes, function ($var) use ($userId) {
+                    if ($var !== $userId) return $var;
+                })
+            )
+            : array_push($likes, $userId);
+        return $likes;
+    }
+
+    function LikeState($userId, $likes)
+    {
+        in_array($userId, $likes)
+            ? $response = "Post Liked"
+            : $response = "Post Disliked";
+        return $response;
+    }
+
     function ListComments(Request $request, $id)
     {
         try {
-            $page = $request->has("page") && $request->post("page") ? $request->get("page") : 1;
+            $page = $request->has("page") && $request->post("page")
+                ? $request->get("page")
+                : 1;
             $limit = 20;
             $comments = Comment::where("replies_to", $id)
                 ->skip(($page - 1) * 20)
@@ -149,7 +180,7 @@ class PostController extends Controller
                 $request->has("content") && $request->post("content") &&
                 $request->has("author") && $request->post("author")
             ) {
-                $request->request->add(['is_comment' => true]);
+                $request->request->add(["is_comment" => true]);
                 $postId = $this->InsertPost($request);
                 $commentId = $this->InsertComment($postId, $id);
                 $this->AddCommentToThePostArray($post, $commentId);
