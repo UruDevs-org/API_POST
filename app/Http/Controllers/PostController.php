@@ -156,6 +156,7 @@ class PostController extends Controller
     function ListComments(Request $request, $id)
     {
         try {
+            Post::findOrFail($id);
             $page = $request->has("page") && $request->post("page")
                 ? $request->get("page")
                 : 1;

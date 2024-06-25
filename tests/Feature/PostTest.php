@@ -3,13 +3,15 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Nette\Schema\Elements\Structure;
 use Tests\TestCase;
+use App\Models\Post;
 
 class PostTest extends TestCase
 {
     public function test_ListPosts()
     {
-        $postStructure = [
+        $responseStructure = [
             '*' => [
                 'id',
                 'content',
@@ -30,12 +32,12 @@ class PostTest extends TestCase
 
         $response = $this->get('/api/post');
         $response->assertStatus(200);
-        $response->assertJsonStructure($postStructure);
+        $response->assertJsonStructure($responseStructure);
     }
 
     public function test_GetPost()
     {
-        $postStructure = [
+        $responseStructure = [
             'id',
             'content',
             'author',
@@ -54,7 +56,7 @@ class PostTest extends TestCase
 
         $response = $this->get('/api/post/1');
         $response->assertStatus(200);
-        $response->assertJsonStructure($postStructure);
+        $response->assertJsonStructure($responseStructure);
     }
 
     public function test_GetNonExistantPost()
@@ -180,6 +182,21 @@ class PostTest extends TestCase
         $this->assertDatabaseMissing('posts', ['id' => 99999999999]);
     }
 
+    public function test_DislikePost()
+    {
+        $responseStructure = ['msg'];
+        $responseData = ['msg' => 'Post Disliked'];
+        $requestData = [
+            'userId' => 1,
+        ];
+
+        $response = $this->post('/api/post/like/1', $requestData);
+        $response->assertStatus(200);
+        $response->assertJsonStructure($responseStructure);
+        $response->assertJsonFragment($responseData);
+        $this->assertEquals([], Post::findOrFail(1)->likes);
+    }
+
     public function test_LikePost()
     {
         $responseStructure = ['msg'];
@@ -189,14 +206,14 @@ class PostTest extends TestCase
         ];
         $postData = [
             'id' => 1,
-            'likes' => json_encode([1]),
+            'likes' => [1],
         ];
 
         $response = $this->post('/api/post/like/1', $requestData);
         $response->assertStatus(200);
         $response->assertJsonStructure($responseStructure);
         $response->assertJsonFragment($responseData);
-        $this->assertDatabaseHas('posts', $postData);
+        $this->assertEquals([1], Post::findOrFail(1)->likes);
     }
 
     public function test_LikeNonExistantPost()
@@ -230,5 +247,120 @@ class PostTest extends TestCase
         $response->assertStatus(400);
         $response->assertJsonStructure($responseStructure);
         $response->assertJsonFragment($responseData);
+    }
+
+    public function test_ListComments()
+    {
+        $responseStructure = [
+            '*' => [
+                'id',
+                'content',
+                'author',
+                'attachments',
+                'comments',
+                'likes',
+                'is_event',
+                'is_comment',
+                'reports',
+                'reports',
+                'published_in_group',
+                'created_at',
+                'updated_at',
+                'deleted_at',
+            ]
+        ];
+
+        $response = $this->get('/api/post/1/comments');
+        $response->assertStatus(200);
+        $response->assertJsonStructure($responseStructure);
+    }
+
+    public function test_ListCommentsFromNonExistantPost()
+    {
+        $responseStructure = ['error'];
+        $responseData = ['error' => "Culdn't find the post"];
+
+        $response = $this->get('/api/post/999999999/comments');
+        $response->assertStatus(404);
+        $response->assertJsonStructure($responseStructure);
+        $response->assertJsonFragment($responseData);
+    }
+
+    public function test_Comment()
+    {
+        $responseStructure = ['msg'];
+        $responseData = ['msg' => 'Post commented'];
+        $requestData = [
+            'content' => 'Content of the Comment',
+            'author' => '1',
+        ];
+
+        $response = $this->post('/api/post/comment/1', $requestData);
+        $response->assertStatus(201);
+        $response->assertJsonStructure($responseStructure);
+        $response->assertJsonFragment($responseData);
+        $this->assertDatabaseHas('posts', $requestData);
+    }
+
+    public function test_CreateCommentBadRequest()
+    {
+        $responseStructure = ['error'];
+        $responseData = [
+            'error' => 'There are required params incomplete on the request'
+        ];
+        $requestData = [
+            'content' => 'Content of the Comment Without an Author',
+            'author' => '',
+        ];
+
+        $response = $this->post('/api/post/comment/1', $requestData);
+        $response->assertStatus(400);
+        $response->assertJsonStructure($responseStructure);
+        $response->assertJsonFragment($responseData);
+        $this->assertDatabaseMissing('posts', $requestData);
+    }
+
+    public function test_CreateCommentOnNonExistantPost()
+    {
+        $responseStructure = ['error'];
+        $responseData = [
+            'error' => "Culdn't find the post you're trying to comment"
+        ];
+        $requestData = [
+            'content' => 'Content of the Comment on a non existant post',
+            'author' => '1',
+        ];
+
+        $response = $this->post('/api/post/comment/99999999', $requestData);
+        $response->assertStatus(404);
+        $response->assertJsonStructure($responseStructure);
+        $response->assertJsonFragment($responseData);
+        $this->assertDatabaseMissing('posts', $requestData);
+    }
+
+    public function test_DeleteComment()
+    {
+        $responseStructure = ['msg'];
+        $responseData = ['msg' => 'Comment deleted'];
+
+        $response = $this->get('/api/post/delete/comment/10');
+        $response->assertStatus(200);
+        $response->assertJsonStructure($responseStructure);
+        $response->assertJsonFragment($responseData);
+        $this->assertSoftDeleted('comments', ['id' => 10]);
+    }
+
+    public function test_DeleteNonExistantComment()
+    {
+        $responseStructure = ['error'];
+        $responseData = [
+            'error' => "Culdn't find the comment you're trying to delete"
+        ];
+
+        $response = $this->get('/api/post/delete/comment/99999999999');
+        $response->assertStatus(404);
+        $response->assertJsonStructure($responseStructure);
+        $response->assertJsonFragment($responseData);
+        $this->assertDatabaseMissing('comments', ['id' => 99999999999]);
     }
 }
