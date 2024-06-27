@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\CommentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,9 +18,3 @@ use App\Http\Controllers\PostController;
 Route::get('/', function () {
     return view('welcome');
 });
-
-Route::get('/csrf-token', function () {
-    return response() -> json(["token" => csrf_token()]);
-});
-
-Route::post('/create', [PostController::class, "Create"]);
